@@ -1,0 +1,9 @@
+---
+applications:
+  - name: netgear-exporter
+    buildpack: go_buildpack
+    env:
+      GOPACKAGENAME: github.com/DRuggeri/netgear_exporter
+      NETGEAR_EXPORTER_URL: "Your router URL"
+      NETGEAR_EXPORTER_USERNAME: "Your router username"
+      NETGEAR_EXPORTER_PASSWORD: "Your router password"
