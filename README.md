@@ -73,9 +73,9 @@ $ cf push
       --version               Show application version.
 ```
 
-### Metrics
+## Metrics
 
-#### Traffic
+### Traffic
 This collector gathers the raw traffic data from the router. The time metrics are converted from `hh:mm` format to number of seconds.
 
 **IMPORTANT NOTE:** Netgear implements these statistics as incrementing counters that reset after their prescribed duration (day, week, month). As such, these metrics should mostly show "sawtooth" style data when graphed.
@@ -108,8 +108,9 @@ This collector gathers the raw traffic data from the router. The time metrics ar
   netgear_last_traffic_scrape_timestamp - Number of seconds since 1970 since last scrape of Netgear traffic metrics.
 ```
 
+---
 
-#### TrafficDelta
+### TrafficDelta
 **IMPORTANT NOTE:** This collector *IS NOT* capable of handling concurrent scrapes and scrapes from multiple clients. This is because the Netgear routers provide traffic statistics as incrementing counters that reset each day. In order to detect the amount of traffic that has been passed since the previous scrape, the collector keeps track of the previous result. The results presented by the exporter therefore rely on having only one client scraping it at a time. To get the raw metrics presented by the router, use the [Traffic](#Traffic) collector.
 ```
   netgear_trafficdelta_download - Value downloaded since previous check
