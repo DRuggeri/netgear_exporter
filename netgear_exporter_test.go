@@ -17,7 +17,7 @@ const (
 	address = "localhost:19100"
 )
 
-func TestFileDescriptorLeak(t *testing.T) {
+func TestSuccessfulLaunch(t *testing.T) {
 /*
 	if _, err := os.Stat(binary); err != nil {
 		t.Fatalf("%s binary not available, try to run `go build` first: %s", binary, err)
