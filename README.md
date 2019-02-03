@@ -110,7 +110,7 @@ This collector gathers the raw traffic data from the router. The time metrics ar
   netgear_last_traffic_scrape_timestamp - Number of seconds since 1970 since last scrape of Netgear traffic metrics.
 ```
 
-Additional metrics available if `traffic.calculatedelta` option is set:
+#### Additional metrics available with `traffic.calculatedelta`
 
 **IMPORTANT NOTE:** This portion of the collector *IS NOT* capable of handling concurrent scrapes and scrapes from multiple clients. This is because the Netgear routers provide current traffic statistics as incrementing counters that reset each day.
 In order to detect the amount of traffic that has been passed since the previous scrape, the collector keeps track of the previous result.
