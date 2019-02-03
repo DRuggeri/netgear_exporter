@@ -6,7 +6,7 @@ A [Prometheus](https://prometheus.io) exporter for Netgear consumer routers. Thi
 
 ### Binaries
 
-Download the already existing [binaries][https://github.com/DRuggeri/netgear_exporter/releases] for your platform:
+Download the already existing [binaries](https://github.com/DRuggeri/netgear_exporter/releases) for your platform:
 
 ```bash
 $ ./netgear_exporter <flags>
