@@ -4,17 +4,16 @@ import (
 	"github.com/DRuggeri/netgear_client"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/log"
-	"strconv"
 	"time"
+	"fmt"
+	"strings"
+	"strconv"
 )
 
 type TrafficCollector struct {
 	namespace        string
 	client           *netgear_client.NetgearClient
-	previousIn       float64
-	previousOut      float64
-	trafficInMetric  prometheus.Gauge
-	trafficOutMetric prometheus.Gauge
+	metrics		map[string]prometheus.Gauge
 
 	trafficScrapesTotalMetric              prometheus.Counter
 	trafficScrapeErrorsTotalMetric         prometheus.Counter
@@ -23,24 +22,42 @@ type TrafficCollector struct {
 	lastTrafficScrapeDurationSecondsMetric prometheus.Gauge
 }
 
-func NewTrafficCollector(namespace string, client *netgear_client.NetgearClient) *TrafficCollector {
-	trafficInMetric := prometheus.NewGauge(
-		prometheus.GaugeOpts{
-			Namespace: namespace,
-			Subsystem: "traffic",
-			Name:      "download",
-			Help:      "Value downloaded since previous check",
-		},
-	)
-	trafficOutMetric := prometheus.NewGauge(
-		prometheus.GaugeOpts{
-			Namespace: namespace,
-			Subsystem: "traffic",
-			Name:      "upload",
-			Help:      "Value uploaded since previous check",
-		},
-	)
+var TrafficCollectorFields = [...]string {
+  "TodayConnectionTime",
+  "TodayDownload",
+  "TodayUpload",
+  "YesterdayConnectionTime",
+  "YesterdayDownload",
+  "YesterdayUpload",
+  "WeekConnectionTime",
+  "WeekDownload",
+  "WeekDownloadAverage",
+  "WeekUpload",
+  "WeekUploadAverage",
+  "MonthConnectionTime",
+  "MonthDownload",
+  "MonthDownloadAverage",
+  "MonthUpload",
+  "MonthUploadAverage",
+  "LastMonthConnectionTime",
+  "LastMonthDownload",
+  "LastMonthDownloadAverage",
+  "LastMonthUpload",
+  "LastMonthUploadAverage",
+}
 
+func NewTrafficCollector(namespace string, client *netgear_client.NetgearClient) *TrafficCollector {
+	metrics := make(map[string]prometheus.Gauge)
+	for _, name := range TrafficCollectorFields {
+		metrics[name] = prometheus.NewGauge(
+			prometheus.GaugeOpts{
+				Namespace: namespace,
+				Subsystem: "traffic",
+				Name:      strings.ToLower(name),
+				Help:      fmt.Sprintf("Value of the '%s' traffic metric from the router", name),
+			},
+		)
+	}
 	trafficScrapesTotalMetric := prometheus.NewCounter(
 		prometheus.CounterOpts{
 			Namespace: namespace,
@@ -89,10 +106,7 @@ func NewTrafficCollector(namespace string, client *netgear_client.NetgearClient)
 	return &TrafficCollector{
 		namespace:        namespace,
 		client:           client,
-		trafficInMetric:  trafficInMetric,
-		previousIn:       float64(-1),
-		trafficOutMetric: trafficOutMetric,
-		previousOut:      float64(-1),
+		metrics:	metrics,
 
 		trafficScrapesTotalMetric:              trafficScrapesTotalMetric,
 		trafficScrapeErrorsTotalMetric:         trafficScrapeErrorsTotalMetric,
@@ -111,47 +125,31 @@ func (c *TrafficCollector) Collect(ch chan<- prometheus.Metric) {
 		log.Errorf("Error while collecting traffic statistics: %v", err)
 		errorMetric = float64(1)
 		c.trafficScrapeErrorsTotalMetric.Inc()
+	} else {
+		/* Loop through the names we expect */
+		for _, name := range TrafficCollectorFields {
+			/* Check first that we got what we expect */
+			if val, ok := stats[name]; ok {
+				var metric float64
+				/* Convert time entries in H:M format to seconds */
+				if strings.HasSuffix(name, "Time") {
+					times := strings.Split(val, ":")
+					tmp, _ := strconv.ParseFloat(times[0], 64)
+					metric = tmp * float64(3600)
+					tmp, _ = strconv.ParseFloat(times[0], 64)
+					metric += tmp * float64(60)
+				} else {
+					metric, _ = strconv.ParseFloat(val, 64)
+				}
+
+				c.metrics[name].Set(metric)
+				c.metrics[name].Collect(ch)
+			} else {
+				log.Warnf("Traffic stat named '%s' missing from results!", name)
+			}
+		}
 	}
 	c.trafficScrapeErrorsTotalMetric.Collect(ch)
-
-	currentIn, _ := strconv.ParseFloat(stats["TodayDownload"], 64)
-	currentOut, _ := strconv.ParseFloat(stats["TodayUpload"], 64)
-
-	/* On the first scrape, the previous values are -1. Since we are calcluating
-	   a delta only, pretend this one was zero and update our previous value */
-	if c.previousIn < 0 {
-		c.previousIn = currentIn
-	}
-	if c.previousOut < 0 {
-		c.previousOut = currentOut
-	}
-
-	newIn := currentIn - c.previousIn
-	newOut := currentOut - c.previousOut
-
-	log.Infof("In - previous: %v, current: %v, new: %v", c.previousIn, currentIn, newIn)
-	log.Infof("Out - previous: %v, current: %v, new: %v", c.previousOut, currentOut, newOut)
-	log.Debugf("Raw stats returned:\n")
-	for k, v := range stats {
-		log.Debugf("  %v => %v", k, v)
-	}
-
-	c.previousIn = currentIn
-	c.previousOut = currentOut
-
-	/* Metric rolled to next day or this collector started. Assume 0 */
-	if newIn < 0 {
-		newIn = 0
-	}
-	if newOut < 0 {
-		newOut = 0
-	}
-
-	c.trafficInMetric.Set(newIn)
-	c.trafficInMetric.Collect(ch)
-
-	c.trafficOutMetric.Set(newOut)
-	c.trafficOutMetric.Collect(ch)
 
 	c.trafficScrapesTotalMetric.Inc()
 	c.trafficScrapesTotalMetric.Collect(ch)
@@ -164,12 +162,12 @@ func (c *TrafficCollector) Collect(ch chan<- prometheus.Metric) {
 
 	c.lastTrafficScrapeDurationSecondsMetric.Set(time.Since(begun).Seconds())
 	c.lastTrafficScrapeDurationSecondsMetric.Collect(ch)
-
 }
 
 func (c *TrafficCollector) Describe(ch chan<- *prometheus.Desc) {
-	c.trafficInMetric.Describe(ch)
-	c.trafficOutMetric.Describe(ch)
+	for _, name := range TrafficCollectorFields {
+		c.metrics[name].Describe(ch)
+	}
 	c.trafficScrapesTotalMetric.Describe(ch)
 	c.trafficScrapeErrorsTotalMetric.Describe(ch)
 	c.lastTrafficScrapeErrorMetric.Describe(ch)

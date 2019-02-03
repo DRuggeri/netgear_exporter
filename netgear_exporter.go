@@ -42,7 +42,7 @@ var (
 	).Envar("NETGEAR_EXPORTER_CLIENT_DEBUG").Default("false").Bool()
 
 	filterCollectors = kingpin.Flag(
-		"filter.collectors", "Comma separated collectors to filter (Traffic) ($NETGEAR_EXPORTER_FILTER_COLLECTORS)",
+		"filter.collectors", "Comma separated collectors to filter (Traffic,TrafficDelta) ($NETGEAR_EXPORTER_FILTER_COLLECTORS)",
 	).Envar("NETGEAR_EXPORTER_FILTER_COLLECTORS").Default("").String()
 
 	metricsNamespace = kingpin.Flag(
@@ -146,6 +146,13 @@ func main() {
 		trafficCollector.Describe(out)
 		close(out)
 
+		fmt.Println("TrafficDelta")
+		trafficDeltaCollector := collectors.NewTrafficDeltaCollector(*metricsNamespace, nil)
+		out = make(chan *prometheus.Desc)
+		go eatOutput(out)
+		trafficDeltaCollector.Describe(out)
+		close(out)
+
 		os.Exit(0)
 	}
 
@@ -171,6 +178,11 @@ func main() {
 	if collectorsFilter.Enabled(filters.TrafficCollector) {
 		trafficCollector := collectors.NewTrafficCollector(*metricsNamespace, netgearClient)
 		prometheus.MustRegister(trafficCollector)
+	}
+
+	if collectorsFilter.Enabled(filters.TrafficDeltaCollector) {
+		trafficDeltaCollector := collectors.NewTrafficDeltaCollector(*metricsNamespace, netgearClient)
+		prometheus.MustRegister(trafficDeltaCollector)
 	}
 
 	handler := prometheusHandler()

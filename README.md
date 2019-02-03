@@ -51,7 +51,7 @@ $ cf push
       --timeout=2             Timeout in seconds for communication with the router. On LAN networks, this should be very small. Default: 2 ($NETGEAR_EXPORTER_TIMEOUT)
       --debug                 Print exporter debug information to stdout. ($NETGEAR_EXPORTER_DEBUG)
       --clientdebug           Print requests and responses on STDOUT. ($NETGEAR_EXPORTER_CLIENT_DEBUG)
-      --filter.collectors=""  Comma separated collectors to filter (Traffic) ($NETGEAR_EXPORTER_FILTER_COLLECTORS)
+      --filter.collectors=""  Comma separated collectors to filter (TrafficDelta) ($NETGEAR_EXPORTER_FILTER_COLLECTORS)
       --metrics.namespace="netgear"
                               Metrics Namespace ($NETGEAR_EXPORTER_METRICS_NAMESPACE)
       --web.listen-address=":9192"
@@ -76,14 +76,49 @@ $ cf push
 ### Metrics
 
 #### Traffic
+This collector gathers the raw traffic data from the router. The time metrics are converted from `hh:mm` format to number of seconds.
+
+**IMPORTANT NOTE:** Netgear implements these statistics as incrementing counters that reset after their prescribed duration (day, week, month). As such, these metrics should mostly show "sawtooth" style data when graphed.
+
 ```
-  netgear_traffic_download - Value downloaded since previous check
-  netgear_traffic_upload - Value uploaded since previous check
+  netgear_traffic_todayconnectiontime - Value of the 'TodayConnectionTime' traffic metric from the router
+  netgear_traffic_todaydownload - Value of the 'TodayDownload' traffic metric from the router
+  netgear_traffic_todayupload - Value of the 'TodayUpload' traffic metric from the router
+  netgear_traffic_yesterdayconnectiontime - Value of the 'YesterdayConnectionTime' traffic metric from the router
+  netgear_traffic_yesterdaydownload - Value of the 'YesterdayDownload' traffic metric from the router
+  netgear_traffic_yesterdayupload - Value of the 'YesterdayUpload' traffic metric from the router
+  netgear_traffic_weekconnectiontime - Value of the 'WeekConnectionTime' traffic metric from the router
+  netgear_traffic_weekdownload - Value of the 'WeekDownload' traffic metric from the router
+  netgear_traffic_weekdownloadaverage - Value of the 'WeekDownloadAverage' traffic metric from the router
+  netgear_traffic_weekupload - Value of the 'WeekUpload' traffic metric from the router
+  netgear_traffic_weekuploadaverage - Value of the 'WeekUploadAverage' traffic metric from the router
+  netgear_traffic_monthconnectiontime - Value of the 'MonthConnectionTime' traffic metric from the router
+  netgear_traffic_monthdownload - Value of the 'MonthDownload' traffic metric from the router
+  netgear_traffic_monthdownloadaverage - Value of the 'MonthDownloadAverage' traffic metric from the router
+  netgear_traffic_monthupload - Value of the 'MonthUpload' traffic metric from the router
+  netgear_traffic_monthuploadaverage - Value of the 'MonthUploadAverage' traffic metric from the router
+  netgear_traffic_lastmonthconnectiontime - Value of the 'LastMonthConnectionTime' traffic metric from the router
+  netgear_traffic_lastmonthdownload - Value of the 'LastMonthDownload' traffic metric from the router
+  netgear_traffic_lastmonthdownloadaverage - Value of the 'LastMonthDownloadAverage' traffic metric from the router
+  netgear_traffic_lastmonthupload - Value of the 'LastMonthUpload' traffic metric from the router
+  netgear_traffic_lastmonthuploadaverage - Value of the 'LastMonthUploadAverage' traffic metric from the router
   netgear_traffic_scrapes_total - Total number of scrapes for Netgear traffic stats.
   netgear_traffic_scrape_errors_total - Total number of scrapes errors for Netgear traffic stats.
   netgear_last_traffic_scrape_error - Whether the last scrape of Netgear traffic stats resulted in an error (1 for error, 0 for success).
   netgear_last_traffic_scrape_timestamp - Number of seconds since 1970 since last scrape of Netgear traffic metrics.
-  netgear_last_traffic_scrape_duration_seconds - Duration of the last scrape of Netgear traffic stats.
+```
+
+
+#### TrafficDelta
+**IMPORTANT NOTE:** This collector *IS NOT* capable of handling concurrent scrapes and scrapes from multiple clients. This is because the Netgear routers provide traffic statistics as incrementing counters that reset each day. In order to detect the amount of traffic that has been passed since the previous scrape, the collector keeps track of the previous result. The results presented by the exporter therefore rely on having only one client scraping it at a time. To get the raw metrics presented by the router, use the [Traffic](#Traffic) collector.
+```
+  netgear_trafficdelta_download - Value downloaded since previous check
+  netgear_trafficdelta_upload - Value uploaded since previous check
+  netgear_trafficdelta_scrapes_total - Total number of scrapes for Netgear traffic stats.
+  netgear_trafficdelta_scrape_errors_total - Total number of scrapes errors for Netgear traffic stats.
+  netgear_last_trafficdelta_scrape_error - Whether the last scrape of Netgear traffic stats resulted in an error (1 for error, 0 for success).
+  netgear_last_trafficdelta_scrape_timestamp - Number of seconds since 1970 since last scrape of Netgear traffic metrics.
+  netgear_last_trafficdelta_scrape_duration_seconds - Duration of the last scrape of Netgear traffic stats.
 ```
 
 ## Contributing
