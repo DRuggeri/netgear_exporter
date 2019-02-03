@@ -7,7 +7,7 @@ import (
 )
 
 const (
-	TrafficCollector = "Traffic"
+	TrafficCollector      = "Traffic"
 	TrafficDeltaCollector = "TrafficDelta"
 )
 

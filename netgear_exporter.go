@@ -42,8 +42,12 @@ var (
 	).Envar("NETGEAR_EXPORTER_CLIENT_DEBUG").Default("false").Bool()
 
 	filterCollectors = kingpin.Flag(
-		"filter.collectors", "Comma separated collectors to filter (Traffic,TrafficDelta) ($NETGEAR_EXPORTER_FILTER_COLLECTORS)",
+		"filter.collectors", "Comma separated collectors to filter (Traffic) ($NETGEAR_EXPORTER_FILTER_COLLECTORS)",
 	).Envar("NETGEAR_EXPORTER_FILTER_COLLECTORS").Default("").String()
+
+	netgearCalculateTrafficDelta = kingpin.Flag(
+		"traffic.calculatedelta", "When enabled, calculates a delta value for in/out bytes. See README.md for warning. ($NETGEAR_EXPORTER_CACLULATE_DELTA)",
+	).Envar("NETGEAR_EXPORTER_CALCULATE_DELTA").Default("false").Bool()
 
 	metricsNamespace = kingpin.Flag(
 		"metrics.namespace", "Metrics Namespace ($NETGEAR_EXPORTER_METRICS_NAMESPACE)",
@@ -140,17 +144,10 @@ func main() {
 		   - When the describe function exits after returning the last item, close the channel to end the background consume function
 		*/
 		fmt.Println("Traffic")
-		trafficCollector := collectors.NewTrafficCollector(*metricsNamespace, nil)
+		trafficCollector := collectors.NewTrafficCollector(*metricsNamespace, nil, true)
 		out = make(chan *prometheus.Desc)
 		go eatOutput(out)
 		trafficCollector.Describe(out)
-		close(out)
-
-		fmt.Println("TrafficDelta")
-		trafficDeltaCollector := collectors.NewTrafficDeltaCollector(*metricsNamespace, nil)
-		out = make(chan *prometheus.Desc)
-		go eatOutput(out)
-		trafficDeltaCollector.Describe(out)
 		close(out)
 
 		os.Exit(0)
@@ -176,13 +173,8 @@ func main() {
 	}
 
 	if collectorsFilter.Enabled(filters.TrafficCollector) {
-		trafficCollector := collectors.NewTrafficCollector(*metricsNamespace, netgearClient)
+		trafficCollector := collectors.NewTrafficCollector(*metricsNamespace, netgearClient, *netgearCalculateTrafficDelta)
 		prometheus.MustRegister(trafficCollector)
-	}
-
-	if collectorsFilter.Enabled(filters.TrafficDeltaCollector) {
-		trafficDeltaCollector := collectors.NewTrafficDeltaCollector(*metricsNamespace, netgearClient)
-		prometheus.MustRegister(trafficDeltaCollector)
 	}
 
 	handler := prometheusHandler()
