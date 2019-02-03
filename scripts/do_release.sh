@@ -3,10 +3,6 @@
 OSs=("darwin" "linux" "windows")
 ARCHs=("386" "amd64" "arm")
 
-export NETGEAR_EXPORTER_URL="https://192.168.0.1"
-export NETGEAR_EXPORTER_INSECURE="true"
-export NETGEAR_EXPORTER_PASSWORD=`cat exporter_password`
-
 #Get into the right directory
 cd $(dirname $0)
 
@@ -40,6 +36,9 @@ if [[ "$tag" != v* ]];then
   tag="v$tag"
 fi
 
+#Verify testing is good
+./test.sh
+
 #Build for all architectures we want
 ARTIFACTS=()
 #for GOOS in darwin linux windows netbsd openbsd solaris;do
@@ -59,19 +58,6 @@ for GOOS in "${OSs[@]}";do
 done
 export GOOS=""
 export GOARCH=""
-
-#The version with GOOS and GOARCH being unset is for testing
-go build -o "netgear_exporter" ../
-
-#Make sure we are good to go
-echo "Running tests..."
-echo "$PATH"
-cd ../
-if ! go test;then
-  echo "Failed testing. Aborting."
-  exit 1
-fi
-cd -
 
 #Create the release so we can add our files
 ./create-github-release.sh github_api_token=$github_api_token owner=$owner repo=$repo tag=$tag draft=false
