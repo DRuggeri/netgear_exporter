@@ -25,9 +25,11 @@ var (
 		"username", "Username to use. Defaults to 'admin' ($NETGEAR_EXPORTER_USERNAME)",
 	).Envar("NETGEAR_EXPORTER_USERNAME").Default("admin").String()
 
+	/* Per Prometheus project, it is unacceptable to accept password on command line. See: https://github.com/prometheus/docs/pull/1275#issuecomment-460187844
 	netgearPassword = kingpin.Flag(
 		"password", "Password to use. ($NETGEAR_EXPORTER_PASSWORD)",
 	).Envar("NETGEAR_EXPORTER_PASSWORD").Required().String()
+	*/
 
 	netgearInsecure = kingpin.Flag(
 		"insecure", "Disable TLS validation of the router. This is needed if you are connecting by IP or a custom host name. Default: false ($NETGEAR_EXPORTER_INSECURE)",
@@ -153,10 +155,16 @@ func main() {
 		os.Exit(0)
 	}
 
+	password := os.Getenv("NETGEAR_EXPORTER_PASSWORD")
+	if password == "" {
+		os.Stderr.WriteString("ERROR: The password for the SOAP API must be set in the environment variable NETGEAR_EXPORTER_PASSWORD\n")
+		os.Exit(1)
+	}
+
 	log.Infoln("Starting node_exporter", version.Info())
 	log.Infoln("Build context", version.BuildContext())
 
-	netgearClient, err := netgear_client.NewNetgearClient(*netgearUrl, *netgearInsecure, *netgearUsername, *netgearPassword, *netgearTimeout, *netgearClientDebug)
+	netgearClient, err := netgear_client.NewNetgearClient(*netgearUrl, *netgearInsecure, *netgearUsername, password, *netgearTimeout, *netgearClientDebug)
 	if err != nil {
 		log.Errorf("Error creating Netgear client: %s", err.Error())
 		os.Exit(1)
