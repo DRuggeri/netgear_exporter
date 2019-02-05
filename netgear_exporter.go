@@ -47,10 +47,6 @@ var (
 		"filter.collectors", "Comma separated collectors to filter (Traffic) ($NETGEAR_EXPORTER_FILTER_COLLECTORS)",
 	).Envar("NETGEAR_EXPORTER_FILTER_COLLECTORS").Default("").String()
 
-	netgearCalculateTrafficDelta = kingpin.Flag(
-		"traffic.calculatedelta", "When enabled, calculates a delta value for in/out bytes. See README.md for warning. ($NETGEAR_EXPORTER_CACLULATE_DELTA)",
-	).Envar("NETGEAR_EXPORTER_CALCULATE_DELTA").Default("false").Bool()
-
 	metricsNamespace = kingpin.Flag(
 		"metrics.namespace", "Metrics Namespace ($NETGEAR_EXPORTER_METRICS_NAMESPACE)",
 	).Envar("NETGEAR_EXPORTER_METRICS_NAMESPACE").Default("netgear").String()
@@ -146,7 +142,7 @@ func main() {
 		   - When the describe function exits after returning the last item, close the channel to end the background consume function
 		*/
 		fmt.Println("Traffic")
-		trafficCollector := collectors.NewTrafficCollector(*metricsNamespace, nil, true)
+		trafficCollector := collectors.NewTrafficCollector(*metricsNamespace, nil)
 		out = make(chan *prometheus.Desc)
 		go eatOutput(out)
 		trafficCollector.Describe(out)
@@ -181,7 +177,7 @@ func main() {
 	}
 
 	if collectorsFilter.Enabled(filters.TrafficCollector) {
-		trafficCollector := collectors.NewTrafficCollector(*metricsNamespace, netgearClient, *netgearCalculateTrafficDelta)
+		trafficCollector := collectors.NewTrafficCollector(*metricsNamespace, netgearClient)
 		prometheus.MustRegister(trafficCollector)
 	}
 
