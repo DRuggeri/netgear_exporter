@@ -44,7 +44,7 @@ var (
 	).Envar("NETGEAR_EXPORTER_CLIENT_DEBUG").Default("false").Bool()
 
 	filterCollectors = kingpin.Flag(
-		"filter.collectors", "Comma separated collectors to filter (Traffic) ($NETGEAR_EXPORTER_FILTER_COLLECTORS)",
+		"filter.collectors", "Comma separated collectors to filter (Client,SystemInfo,Traffic) ($NETGEAR_EXPORTER_FILTER_COLLECTORS)",
 	).Envar("NETGEAR_EXPORTER_FILTER_COLLECTORS").Default("").String()
 
 	metricsNamespace = kingpin.Flag(
@@ -141,6 +141,20 @@ func main() {
 		   - Call the describe function to feed the channel (which blocks until the consume function eats a message)
 		   - When the describe function exits after returning the last item, close the channel to end the background consume function
 		*/
+		fmt.Println("Client")
+		clientCollector := collectors.NewClientCollector(*metricsNamespace, nil)
+		out = make(chan *prometheus.Desc)
+		go eatOutput(out)
+		clientCollector.Describe(out)
+		close(out)
+
+		fmt.Println("SystemInfo")
+		systemInfoCollector := collectors.NewSystemInfoCollector(*metricsNamespace, nil)
+		out = make(chan *prometheus.Desc)
+		go eatOutput(out)
+		systemInfoCollector.Describe(out)
+		close(out)
+
 		fmt.Println("Traffic")
 		trafficCollector := collectors.NewTrafficCollector(*metricsNamespace, nil)
 		out = make(chan *prometheus.Desc)
@@ -174,6 +188,16 @@ func main() {
 	if err != nil {
 		log.Error(err)
 		os.Exit(1)
+	}
+
+	if collectorsFilter.Enabled(filters.ClientCollector) {
+		clientCollector := collectors.NewClientCollector(*metricsNamespace, netgearClient)
+		prometheus.MustRegister(clientCollector)
+	}
+
+	if collectorsFilter.Enabled(filters.SystemInfoCollector) {
+		systemInfoCollector := collectors.NewSystemInfoCollector(*metricsNamespace, netgearClient)
+		prometheus.MustRegister(systemInfoCollector)
 	}
 
 	if collectorsFilter.Enabled(filters.TrafficCollector) {

@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -16,7 +17,7 @@ import (
 
 type NetgearClient struct {
 	http_client *http.Client
-	url         string
+	router_url  string
 	cookie      string
 	sessionid   string
 	insecure    bool
@@ -61,32 +62,31 @@ const AUTH_REQUEST = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
   </SOAP-ENV:Body>
 </SOAP-ENV:Envelope>`
 
-const TRAFFIC_ACTION = "urn:NETGEAR-ROUTER:service:DeviceConfig:1#GetTrafficMeterStatistics"
-const TRAFFIC_REQUEST = `<?xml version="1.0" encoding="UTF-8" standalone="no"?>
-<SOAP-ENV:Envelope
-  xmlns:SOAPSDK1="http://www.w3.org/2001/XMLSchema"
-  xmlns:SOAPSDK2="http://www.w3.org/2001/XMLSchema-instance"
-  xmlns:SOAPSDK3="http://schemas.xmlsoap.org/soap/encoding/"
-  xmlns:SOAP-ENV="http://schemas.xmlsoap.org/soap/envelope/">
-  <SOAP-ENV:Header>
-    <SessionID>%s</SessionID>
-  </SOAP-ENV:Header>
-  <SOAP-ENV:Body>
-    <M1:GetTrafficMeterStatistics xmlns:M1="urn:NETGEAR-ROUTER:service:DeviceConfig:1">
-    </M1:GetTrafficMeterStatistics>
-  </SOAP-ENV:Body>
-</SOAP-ENV:Envelope>`
-
 func NewNetgearClient(i_url string, i_insecure bool, i_username string, i_password string, i_timeout int, i_debug bool) (*NetgearClient, error) {
 	if i_debug {
 		log.Printf("netgear_client.go: Constructing debug client\n")
 	}
 
+	if i_url == "" {
+		i_url = "https://routerlogin.net"
+	}
 	if i_username == "" {
 		i_username = "admin"
 	}
 	if i_password == "" {
 		return nil, errors.New("Admin password is required")
+	}
+
+	if strings.HasSuffix(i_url, "/") {
+		i_url = i_url[:len(i_url)-1]
+	}
+	if !strings.Contains(i_url, "://") {
+		i_url = "https://" + i_url
+	}
+
+	_, err := url.Parse(i_url)
+	if err != nil {
+		return nil, fmt.Errorf("Error parsing provided URL (%s): %v", i_url, err)
 	}
 
 	/* Disable TLS verification if requested */
@@ -99,13 +99,13 @@ func NewNetgearClient(i_url string, i_insecure bool, i_username string, i_passwo
 			Timeout:   time.Second * time.Duration(i_timeout),
 			Transport: tr,
 		},
-		url:       i_url,
-		insecure:  i_insecure,
-		username:  i_username,
-		password:  i_password,
-		cookie:    "UNSET",
-		sessionid: SESSION_ID,
-		debug:     i_debug,
+		router_url: i_url,
+		insecure:   i_insecure,
+		username:   i_username,
+		password:   i_password,
+		cookie:     "UNSET",
+		sessionid:  SESSION_ID,
+		debug:      i_debug,
 	}
 
 	return &client, nil
@@ -116,44 +116,13 @@ func (client *NetgearClient) LogIn() error {
 	return err
 }
 
-func (client *NetgearClient) GetTrafficMeterStatistics() (map[string]string, error) {
-	response, err := client.send_request(TRAFFIC_ACTION, fmt.Sprintf(TRAFFIC_REQUEST, client.sessionid), true)
-	if err != nil {
-		return make(map[string]string), err
-	}
-
-	var inside Node
-	err = xml.Unmarshal(response, &inside)
-	if err != nil {
-		return make(map[string]string), fmt.Errorf("Failed to unmarshal response from inside SOAP body: %v", err)
-	}
-
-	var stats = make(map[string]string)
-	for _, node := range inside.Nodes {
-		name := node.XMLName.Local
-		value := strings.Replace(node.Content, ",", "", -1)
-		if strings.HasPrefix(name, "New") {
-			name = name[3:]
-		}
-
-		idx := strings.Index(value, "/")
-		if idx > 0 {
-			stats[name+"Average"] = value[idx+1:]
-			stats[name] = value[0:idx]
-		} else {
-			stats[name] = value
-		}
-	}
-	return stats, nil
-}
-
 func (client *NetgearClient) send_request(action string, data string, attempt_login bool) ([]byte, error) {
 	tries := 2
 	if !attempt_login {
 		tries = 1
 	}
 
-	full_url := client.url + SOAP_PATH
+	full_url := client.router_url + SOAP_PATH
 
 	for i := 0; i < tries; i++ {
 		if client.debug {
