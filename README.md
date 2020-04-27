@@ -21,6 +21,12 @@ $ go install github.com/DRuggeri/netgear_exporter
 $ netgear_exporter <flags>
 ```
 
+### With Docker
+```bash
+docker build -t netgear_exporter .
+docker run -d -p 9192:9192 -e NETGEAR_EXPORTER_PASSWORD=YOUR_PASSWORD netgear_exporter --insecure --url="http://YOUR_IP_ADDRESS" --username="YOUR_USERNAME"
+```
+
 ### Cloud Foundry
 
 The exporter can be deployed to an already existing [Cloud Foundry](https://www.cloudfoundry.org/) environment if, for some reason, that lives on a network with your Netgear consumer router.
