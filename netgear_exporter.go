@@ -60,12 +60,15 @@ var (
 	).Envar("NETGEAR_EXPORTER_WEB_TELEMETRY_PATH").Default("/metrics").String()
 
 	authUsername = kingpin.Flag(
-		"web.auth.username", "Username for web interface basic auth ($NETGEAR_EXPORTER_WEB_AUTH_USERNAME)",
+		"web.auth.username", "Username for web interface basic auth ($NETGEAR_EXPORTER_WEB_AUTH_USERNAME). The password must be set in the environment variable NETGEAR_EXPORTER_WEB_AUTH_PASSWORD",
 	).Envar("NETGEAR_EXPORTER_WEB_AUTH_USERNAME").String()
 
+/*
 	authPassword = kingpin.Flag(
 		"web.auth.password", "Password for web interface basic auth ($NETGEAR_EXPORTER_WEB_AUTH_PASSWORD)",
 	).Envar("NETGEAR_EXPORTER_WEB_AUTH_PASSWORD").String()
+*/
+	authPassword = ""
 
 	tlsCertFile = kingpin.Flag(
 		"web.tls.cert_file", "Path to a file that contains the TLS certificate (PEM format). If the certificate is signed by a certificate authority, the file should be the concatenation of the server's certificate, any intermediates, and the CA's certificate ($NETGEAR_EXPORTER_WEB_TLS_CERTFILE)",
@@ -105,11 +108,11 @@ func (h *basicAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func prometheusHandler() http.Handler {
 	handler := prometheus.Handler()
 
-	if *authUsername != "" && *authPassword != "" {
+	if *authUsername != "" && authPassword != "" {
 		handler = &basicAuthHandler{
 			handler:  prometheus.Handler().ServeHTTP,
 			username: *authUsername,
-			password: *authPassword,
+			password: authPassword,
 		}
 	}
 
@@ -173,6 +176,7 @@ func main() {
 
 	log.Infoln("Starting node_exporter", version.Info())
 	log.Infoln("Build context", version.BuildContext())
+	authPassword = os.Getenv("NETGEAR_EXPORTER_WEB_AUTH_PASSWORD")
 
 	netgearClient, err := netgear_client.NewNetgearClient(*netgearUrl, *netgearInsecure, *netgearUsername, password, *netgearTimeout, *netgearClientDebug)
 	if err != nil {
