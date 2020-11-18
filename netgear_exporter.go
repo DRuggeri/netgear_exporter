@@ -63,11 +63,11 @@ var (
 		"web.auth.username", "Username for web interface basic auth ($NETGEAR_EXPORTER_WEB_AUTH_USERNAME). The password must be set in the environment variable NETGEAR_EXPORTER_WEB_AUTH_PASSWORD",
 	).Envar("NETGEAR_EXPORTER_WEB_AUTH_USERNAME").String()
 
-/*
-	authPassword = kingpin.Flag(
-		"web.auth.password", "Password for web interface basic auth ($NETGEAR_EXPORTER_WEB_AUTH_PASSWORD)",
-	).Envar("NETGEAR_EXPORTER_WEB_AUTH_PASSWORD").String()
-*/
+	/*
+		authPassword = kingpin.Flag(
+			"web.auth.password", "Password for web interface basic auth ($NETGEAR_EXPORTER_WEB_AUTH_PASSWORD)",
+		).Envar("NETGEAR_EXPORTER_WEB_AUTH_PASSWORD").String()
+	*/
 	authPassword = ""
 
 	tlsCertFile = kingpin.Flag(
