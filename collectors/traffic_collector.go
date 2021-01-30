@@ -137,7 +137,7 @@ func (c *TrafficCollector) Collect(ch chan<- prometheus.Metric) {
 					times := strings.Split(val, ":")
 					tmp, _ := strconv.ParseFloat(times[0], 64)
 					metric = tmp * float64(3600)
-					tmp, _ = strconv.ParseFloat(times[0], 64)
+					tmp, _ = strconv.ParseFloat(times[1], 64)
 					metric += tmp * float64(60)
 				} else {
 					metric, _ = strconv.ParseFloat(val, 64)
