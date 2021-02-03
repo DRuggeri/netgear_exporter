@@ -6,7 +6,7 @@ RUN mkdir -p /app/src/github.com/DRuggeri/netgear_exporter
 ENV GOPATH /app
 WORKDIR /app
 COPY . /app/src/github.com/DRuggeri/netgear_exporter
-RUN go install github.com/DRuggeri/netgear_exporter
+RUN cd /app/src/github.com/DRuggeri/netgear_exporter && go install
 
 ### STAGE 2: Setup ###
 
