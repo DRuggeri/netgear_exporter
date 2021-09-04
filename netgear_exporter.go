@@ -16,6 +16,8 @@ import (
 	"github.com/DRuggeri/netgear_exporter/filters"
 )
 
+var Version string
+
 var (
 	netgearUrl = kingpin.Flag(
 		"url", "URL of the Netgear router. Defaults to 'https://www.routerlogin.com' ($NETGEAR_EXPORTER_URL)",
@@ -121,7 +123,7 @@ func prometheusHandler() http.Handler {
 
 func main() {
 	log.AddFlags(kingpin.CommandLine)
-	kingpin.Version(version.Print("netgear_exporter"))
+	kingpin.Version(Version)
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
 
@@ -174,8 +176,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Infoln("Starting node_exporter", version.Info())
-	log.Infoln("Build context", version.BuildContext())
+	log.Infoln("Starting node_exporter", Version)
 	authPassword = os.Getenv("NETGEAR_EXPORTER_WEB_AUTH_PASSWORD")
 
 	netgearClient, err := netgear_client.NewNetgearClient(*netgearUrl, *netgearInsecure, *netgearUsername, password, *netgearTimeout, *netgearClientDebug)

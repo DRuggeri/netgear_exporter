@@ -22,10 +22,11 @@ $ netgear_exporter <flags>
 ```
 
 ### With Docker
-```bash
-docker build -t netgear_exporter .
-docker run -d -p 9192:9192 -e NETGEAR_EXPORTER_PASSWORD=YOUR_PASSWORD netgear_exporter --insecure --url="http://YOUR_IP_ADDRESS" --username="YOUR_USERNAME"
-```
+An official scratch-based Docker image is built with every tag and pushed to DockerHub and ghcr. Additionally, PRs will be tested by GitHubs actions.
+
+The following images are available for use:
+- [druggeri/netgear_exporter](https://hub.docker.com/r/druggeri/netgear_exporter)
+- [ghcr.io/DRuggeri/netgear_exporter](https://ghcr.io/DRuggeri/netgear_exporter)
 
 ### Cloud Foundry
 
