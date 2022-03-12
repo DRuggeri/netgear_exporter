@@ -17,7 +17,7 @@ import (
 	"github.com/DRuggeri/netgear_exporter/filters"
 )
 
-var Version string
+var Version = "testing"
 
 var (
 	netgearUrl = kingpin.Flag(
