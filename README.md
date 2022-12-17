@@ -47,38 +47,58 @@ $ cf push
 ## Usage
 
 ### Flags
+Several flags are available to customize how the exporter works. Note that none of them are strictly required in a "default" installation, but several should probably be set. This mostly depends on your home network and how it is configured. For example, the `url` and `insecure` parameters go hand-in-hand when pointing to a specific IP address. This is required in my setup because I run a custom DNS service which does not intercept queries for `www.routerlogin.com`.
+
+**NOTE**: This exporter MUST have the password set in the NETGEAR_EXPORTER_PASSWORD environment variable. If it is not set, it will fail to start with a warning message.
 
 ```
 Flags:
   -h, --help                  Show context-sensitive help (also try --help-long and --help-man).
-      --url="https://www.routerlogin.com"
+      --url="https://www.routerlogin.com"  
                               URL of the Netgear router. Defaults to 'https://www.routerlogin.com' ($NETGEAR_EXPORTER_URL)
       --username="admin"      Username to use. Defaults to 'admin' ($NETGEAR_EXPORTER_USERNAME)
       --insecure              Disable TLS validation of the router. This is needed if you are connecting by IP or a custom host name. Default: false ($NETGEAR_EXPORTER_INSECURE)
       --timeout=2             Timeout in seconds for communication with the router. On LAN networks, this should be very small. Default: 2 ($NETGEAR_EXPORTER_TIMEOUT)
       --clientdebug           Print requests and responses on STDOUT. ($NETGEAR_EXPORTER_CLIENT_DEBUG)
       --filter.collectors=""  Comma separated collectors to filter (Client,SystemInfo,Traffic) ($NETGEAR_EXPORTER_FILTER_COLLECTORS)
-      --metrics.namespace="netgear"
+      --metrics.namespace="netgear"  
                               Metrics Namespace ($NETGEAR_EXPORTER_METRICS_NAMESPACE)
-      --web.listen-address=":9192"
+      --web.listen-address=":9192"  
                               Address to listen on for web interface and telemetry ($NETGEAR_EXPORTER_WEB_LISTEN_ADDRESS)
-      --web.telemetry-path="/metrics"
+      --web.telemetry-path="/metrics"  
                               Path under which to expose Prometheus metrics ($NETGEAR_EXPORTER_WEB_TELEMETRY_PATH)
-      --web.auth.username=WEB.AUTH.USERNAME
-                              Username for web interface basic auth ($NETGEAR_EXPORTER_WEB_AUTH_USERNAME)
-      --web.auth.password=WEB.AUTH.PASSWORD
-                              Password for web interface basic auth ($NETGEAR_EXPORTER_WEB_AUTH_PASSWORD)
-      --web.tls.cert_file=WEB.TLS.CERT_FILE
-                              Path to a file that contains the TLS certificate (PEM format). If the certificate is signed by a certificate authority, the file should be the concatenation of the server's certificate, any intermediates, and the CA's certificate
-                              ($NETGEAR_EXPORTER_WEB_TLS_CERTFILE)
-      --web.tls.key_file=WEB.TLS.KEY_FILE
+      --web.auth.username=WEB.AUTH.USERNAME  
+                              Username for web interface basic auth ($NETGEAR_EXPORTER_WEB_AUTH_USERNAME). The password must be set in the environment variable NETGEAR_EXPORTER_WEB_AUTH_PASSWORD
+      --web.tls.cert_file=WEB.TLS.CERT_FILE  
+                              Path to a file that contains the TLS certificate (PEM format). If the certificate is signed by a certificate authority, the file should be the concatenation of the server's
+                              certificate, any intermediates, and the CA's certificate ($NETGEAR_EXPORTER_WEB_TLS_CERTFILE)
+      --web.tls.key_file=WEB.TLS.KEY_FILE  
                               Path to a file that contains the TLS private key (PEM format) ($NETGEAR_EXPORTER_WEB_TLS_KEYFILE)
       --printMetrics          Print the metrics this exporter exposes and exits. Default: false ($NETGEAR_EXPORTER_PRINT_METRICS)
       --log.level="info"      Only log messages with the given severity or above. Valid levels: [debug, info, warn, error, fatal]
-      --log.format="logger:stderr"
+      --log.format="logger:stderr"  
                               Set the log target and format. Example: "logger:syslog?appname=bob&local=7" or "logger:stdout?json=true"
       --version               Show application version.
 ```
+
+### Service Configuration
+On systemd based systems, the following `/etc/systemd/system/netgearexporter.service` configuration works well:
+```
+[Unit]
+Description=Start and run the netgear monitor
+After=network.target
+
+[Service]
+EnvironmentFile=/root/.routercreds
+ExecStart=/usr/local/bin/netgear_exporter --url=https://192.168.0.1 --insecure --timeout=10 --filter.collectors=Traffic
+Restart=on-failure
+RestartSec=60s
+
+[Install]
+WantedBy=default.target
+```
+This will read the password (containing NETGEAR_EXPORTER_PASSWORD) from a root-owned file. Should the exporter crash, it will restart after 60 seconds.
+
 
 ## Metrics
 
