@@ -6,5 +6,5 @@
 builds:
 - ignore:
     - (( append ))
-    - goarch: arm
+    - goarch: arm64
       goos: windows
