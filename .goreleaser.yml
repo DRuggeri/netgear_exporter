@@ -22,7 +22,7 @@ builds:
   ignore:
   - goarch: "386"
     goos: darwin
-  - goarch: arm
+  - goarch: arm64
     goos: windows
   ldflags:
   - -X main.Version={{ .Version }} -X main.Commit={{ .Commit }}
