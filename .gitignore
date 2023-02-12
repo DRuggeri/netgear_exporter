@@ -15,3 +15,4 @@ scripts/exporter_password
 scripts/github_api_token
 scripts/netgear_exporter*
 tmp/
+dist/
