@@ -2,12 +2,13 @@ package collectors
 
 import (
 	"fmt"
-	"github.com/DRuggeri/netgear_client"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/log"
+	"log/slog"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/DRuggeri/netgear_client"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type TrafficCollector struct {
@@ -123,7 +124,7 @@ func (c *TrafficCollector) Collect(ch chan<- prometheus.Metric) {
 	errorMetric := float64(0)
 	stats, err := c.client.GetTrafficMeterStatistics()
 	if err != nil {
-		log.Errorf("Error while collecting traffic statistics: %v", err)
+		slog.Error("error while collecting traffic statistics", slog.String("error", err.Error()))
 		errorMetric = float64(1)
 		c.trafficScrapeErrorsTotalMetric.Inc()
 	} else {
@@ -146,7 +147,7 @@ func (c *TrafficCollector) Collect(ch chan<- prometheus.Metric) {
 				c.metrics[name].Set(metric)
 				c.metrics[name].Collect(ch)
 			} else {
-				log.Warnf("Traffic stat named '%s' missing from results!", name)
+				slog.Warn(fmt.Sprintf("traffic stat named '%s' missing from results!", name))
 			}
 		}
 	}

@@ -6,12 +6,13 @@ import (
 	"os"
 	"strings"
 
+	"log/slog"
+
 	"github.com/DRuggeri/netgear_client"
+	"github.com/alecthomas/kingpin"
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors/version"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"github.com/prometheus/common/log"
-	"github.com/prometheus/common/version"
-	"gopkg.in/alecthomas/kingpin.v2"
 
 	"github.com/DRuggeri/netgear_exporter/collectors"
 	"github.com/DRuggeri/netgear_exporter/filters"
@@ -82,8 +83,16 @@ var (
 	).Envar("NETGEAR_EXPORTER_WEB_TLS_KEYFILE").ExistingFile()
 
 	netgearPrintMetrics = kingpin.Flag(
-		"printMetrics", "Print the metrics this exporter exposes and exits. Default: false ($NETGEAR_EXPORTER_PRINT_METRICS)",
+		"printMetrics", "Prints the metrics this exporter exposes and exits. Default: false ($NETGEAR_EXPORTER_PRINT_METRICS)",
 	).Envar("NETGEAR_EXPORTER_PRINT_METRICS").Default("false").Bool()
+
+	logLevel = kingpin.Flag(
+		"log.level", "Minimum log level for messages. One of error, warn, info, or debug. Default: info ($NETGEAR_EXPORTER_LOG_LEVEL)",
+	).Envar("NETGEAR_EXPORTER_LOG_LEVEL").Default("info").String()
+
+	logJson = kingpin.Flag(
+		"log.json", "Format log lines as JSON. Default: false ($NETGEAR_EXPORTER_LOG_JSON)",
+	).Envar("NETGEAR_EXPORTER_LOG_JSON").Bool()
 )
 
 func init() {
@@ -99,13 +108,12 @@ type basicAuthHandler struct {
 func (h *basicAuthHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	username, password, ok := r.BasicAuth()
 	if !ok || username != h.username || password != h.password {
-		log.Errorf("Invalid HTTP auth from `%s`", r.RemoteAddr)
+		slog.Error("invalid HTTP auth", slog.String("remote", r.RemoteAddr))
 		w.Header().Set("WWW-Authenticate", "Basic realm=\"metrics\"")
 		http.Error(w, "Invalid username or password", http.StatusUnauthorized)
 		return
 	}
 	h.handler(w, r)
-	return
 }
 
 func prometheusHandler() http.Handler {
@@ -123,7 +131,6 @@ func prometheusHandler() http.Handler {
 }
 
 func main() {
-	log.AddFlags(kingpin.CommandLine)
 	kingpin.Version(Version)
 	kingpin.HelpFlag.Short('h')
 	kingpin.Parse()
@@ -177,12 +184,31 @@ func main() {
 		os.Exit(1)
 	}
 
-	log.Infoln("Starting node_exporter", Version)
+	opts := &slog.HandlerOptions{}
+	switch *logLevel {
+	case "error":
+		opts.Level = slog.LevelError
+	case "warn":
+		opts.Level = slog.LevelWarn
+	case "info":
+		opts.Level = slog.LevelInfo
+	case "debug":
+		opts.Level = slog.LevelDebug
+	}
+	if *logJson {
+		logger := slog.New(slog.NewJSONHandler(os.Stderr, opts))
+		slog.SetDefault(logger)
+	} else {
+		logger := slog.New(slog.NewTextHandler(os.Stderr, opts))
+		slog.SetDefault(logger)
+	}
+
+	slog.Info("Starting netgear_exporter", slog.String("version", Version))
 	authPassword = os.Getenv("NETGEAR_EXPORTER_WEB_AUTH_PASSWORD")
 
 	netgearClient, err := netgear_client.NewNetgearClient(*netgearUrl, *netgearInsecure, *netgearUsername, password, *netgearTimeout, *netgearClientDebug)
 	if err != nil {
-		log.Errorf("Error creating Netgear client: %s", err.Error())
+		slog.Error("error creating Netgear client", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 
@@ -192,7 +218,7 @@ func main() {
 	}
 	collectorsFilter, err := filters.NewCollectorsFilter(collectorsFilters)
 	if err != nil {
-		log.Error(err)
+		slog.Error("failed to create collectors filter", slog.String("error", err.Error()))
 		os.Exit(1)
 	}
 
@@ -224,10 +250,10 @@ func main() {
 	})
 
 	if *tlsCertFile != "" && *tlsKeyFile != "" {
-		log.Infoln("Listening TLS on", *listenAddress)
-		log.Fatal(http.ListenAndServeTLS(*listenAddress, *tlsCertFile, *tlsKeyFile, nil))
+		slog.Info("Listening TLS", slog.String("address", *listenAddress))
+		slog.Error(http.ListenAndServeTLS(*listenAddress, *tlsCertFile, *tlsKeyFile, nil).Error())
 	} else {
-		log.Infoln("Listening on", *listenAddress)
-		log.Fatal(http.ListenAndServe(*listenAddress, nil))
+		slog.Info("Listening", slog.String("address", *listenAddress))
+		slog.Error(http.ListenAndServe(*listenAddress, nil).Error())
 	}
 }

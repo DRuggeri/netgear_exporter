@@ -52,6 +52,8 @@ Several flags are available to customize how the exporter works. Note that none 
 **NOTE**: This exporter MUST have the password set in the NETGEAR_EXPORTER_PASSWORD environment variable. If it is not set, it will fail to start with a warning message.
 
 ```
+usage: netgear_exporter [<flags>]
+
 Flags:
   -h, --help                  Show context-sensitive help (also try --help-long and --help-man).
       --url="https://www.routerlogin.com"  
@@ -74,10 +76,9 @@ Flags:
                               certificate, any intermediates, and the CA's certificate ($NETGEAR_EXPORTER_WEB_TLS_CERTFILE)
       --web.tls.key_file=WEB.TLS.KEY_FILE  
                               Path to a file that contains the TLS private key (PEM format) ($NETGEAR_EXPORTER_WEB_TLS_KEYFILE)
-      --printMetrics          Print the metrics this exporter exposes and exits. Default: false ($NETGEAR_EXPORTER_PRINT_METRICS)
-      --log.level="info"      Only log messages with the given severity or above. Valid levels: [debug, info, warn, error, fatal]
-      --log.format="logger:stderr"  
-                              Set the log target and format. Example: "logger:syslog?appname=bob&local=7" or "logger:stdout?json=true"
+      --printMetrics          Prints the metrics this exporter exposes and exits. Default: false ($NETGEAR_EXPORTER_PRINT_METRICS)
+      --log.level="info"      Minimum log level for messages. One of error, warn, info, or debug. Default: info ($NETGEAR_EXPORTER_LOG_LEVEL)
+      --log.json              Format log lines as JSON. Default: false ($NETGEAR_EXPORTER_LOG_JSON)
       --version               Show application version.
 ```
 

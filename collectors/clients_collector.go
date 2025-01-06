@@ -1,11 +1,12 @@
 package collectors
 
 import (
-	"github.com/DRuggeri/netgear_client"
-	"github.com/prometheus/client_golang/prometheus"
-	"github.com/prometheus/common/log"
+	"log/slog"
 	"strconv"
 	"time"
+
+	"github.com/DRuggeri/netgear_client"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 type ClientCollector struct {
@@ -119,7 +120,7 @@ func (c *ClientCollector) Collect(ch chan<- prometheus.Metric) {
 	errorMetric := float64(0)
 	clients, err := c.client.GetAttachDevice()
 	if err != nil {
-		log.Errorf("Error while collecting client statistics: %v", err)
+		slog.Error("error while collecting client statistics: %v", slog.String("error", err.Error()))
 		errorMetric = float64(1)
 		c.scrapeErrorsTotalMetric.Inc()
 	} else {
