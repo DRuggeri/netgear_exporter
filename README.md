@@ -2,6 +2,8 @@
 
 A [Prometheus](https://prometheus.io) exporter for Netgear consumer routers. This exporter consumes the data obtained by [netgear_client](https://github.com/DRuggeri/netgear_client) and is based on the [node_exporter](https://github.com/prometheus/node_exporter) and [cf_exporter](https://github.com/bosh-prometheus/cf_exporter) projects.
 
+Archival notice: Since I no longer have netgear equipment in the home to test and verify the functionality, I have decided to archive this repository. With luck, it may continue working for you if Netgear keeps their undocumented API consistent!
+
 ## Installation
 
 ### Binaries
